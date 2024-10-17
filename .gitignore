@@ -1,0 +1,11 @@
+# Python specific ignores
+__pycache__/
+*.pyc
+*.pyo
+
+# Environment files
+.env
+.venv/
+
+# SQLite database
+net_monitor.db
