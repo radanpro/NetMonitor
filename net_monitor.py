@@ -1,15 +1,33 @@
+import os
 import psutil
 import tkinter as tk
 from tkinter import ttk
 import sqlite3
 import datetime
-from PIL import Image, ImageDraw  # لتوليد أيقونة شريط المهام
-import pystray  # مكتبة لعرض الأيقونة في شريط المهام
+from PIL import Image, ImageDraw
+import pystray
+import stat
 
 class NetMonitorApp:
     def __init__(self, master):
         self.master = master
         master.title("NetMonitor")
+        
+        # تحديد مسار قاعدة البيانات لتكون في نفس المجلد الذي يعمل منه التطبيق
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        self.db_path = os.path.join(base_dir, "net_monitor.db")
+
+        # تحقق من وجود قاعدة البيانات وإنشائها إذا لم تكن موجودة
+        if not os.path.exists(self.db_path):
+            open(self.db_path, 'w').close()  # إنشاء الملف الفارغ
+        
+        # ضبط الأذونات لتجنب مشاكل الوصول
+        os.chmod(self.db_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+
+        # الاتصال بقاعدة البيانات
+        self.conn = sqlite3.connect(self.db_path)
+        self.create_table()
+
         # زر لتحديث البيانات
         self.update_button = tk.Button(master, text="Update Data", command=self.display_usage, bg="#007ACC", fg="white", font=("Helvetica", 12, "bold"))
         self.update_button.pack(pady=10)
@@ -49,18 +67,12 @@ class NetMonitorApp:
         self.scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         self.tree.pack(fill=tk.BOTH, expand=True)
 
-        self.conn = sqlite3.connect("net_monitor.db")
-        self.create_table()
-
         # إضافة أيقونة شريط المهام
-        self.tray_icon = None  # نبدأ بدون أيقونة
+        self.tray_icon = None
 
         # عرض القيم الأولية
         self.update_label()
 
-        # Update Button
-        self.update_button = tk.Button(master, text="Update Data", command=self.display_usage, bg="#007ACC", fg="white", font=("Helvetica", 12, "bold"))
-        self.update_button.pack(pady=10)
         # زر لإغلاق البرنامج
         self.close_button = tk.Button(master, text="Close", command=self.close_app, bg="red", fg="white", font=("Helvetica", 12, "bold"))
         self.close_button.pack(pady=10)
@@ -68,9 +80,9 @@ class NetMonitorApp:
     def close_app(self):
         """دالة لإغلاق البرنامج بالكامل مع إزالة رمز شريط النظام."""
         if hasattr(self, 'tray_icon'):
-            self.tray_icon.stop()  # إزالة رمز شريط النظام
+            self.tray_icon.stop()
 
-        self.master.quit()  # إغلاق نافذة التطبيق
+        self.master.quit()
 
     def create_table(self):
         with self.conn:
@@ -101,39 +113,30 @@ class NetMonitorApp:
             """, (today_date, sent, recv))
 
     def update_label(self):
-        # احصل على القيم الحالية
         sent, recv = self.get_network_usage()
 
-        # حساب الفروقات مع القيم السابقة
         delta_sent = sent - self.previous_sent
         delta_recv = recv - self.previous_recv
 
-        # تحديث القيم السابقة
         self.previous_sent = sent
         self.previous_recv = recv
 
-        # إذا كان الفرق سالب أو الشبكة متوقفة، نظهر 0
         sent_display = self.format_size(delta_sent) if delta_sent > 0 else "0.00 KB"
         recv_display = self.format_size(delta_recv) if delta_recv > 0 else "0.00 KB"
 
-        # تحديث القيم في الواجهة (Upload و Download)
         self.sent_label.config(text=f"Upload: {sent_display}")
         self.recv_label.config(text=f"Download: {recv_display}")
 
-        # أضف القيم إلى قاعدة البيانات
         self.store_network_usage(delta_sent, delta_recv)
 
-        # تأكد من وجود أيقونة شريط المهام قبل محاولة التحديث
         if self.tray_icon is None:
             self.create_tray_icon(sent_display, recv_display)
         else:
             self.update_tray_icon(sent_display, recv_display)
 
-        # حدث البيانات كل 3 ثوانٍ
         self.master.after(1000, self.update_label)
 
     def format_size(self, size):
-        """تحويل البيانات إلى الوحدات المناسبة (كيلوبايت، ميغابايت، غيغابايت)."""
         for unit in ['KB', 'MB', 'GB']:
             if size < 1024:
                 return f"{size:.2f} {unit}"
@@ -144,12 +147,9 @@ class NetMonitorApp:
         with self.conn:
             thirty_days_ago = (datetime.datetime.now() - datetime.timedelta(days=30)).strftime("%Y-%m-%d")
             cursor = self.conn.cursor()
-            cursor.execute("""
-                SELECT date, sent, recv FROM daily_network_usage WHERE date >= ?
-            """, (thirty_days_ago,))
+            cursor.execute("SELECT date, sent, recv FROM daily_network_usage WHERE date >= ?", (thirty_days_ago,))
             rows = cursor.fetchall()
 
-            # Clear previous data
             for i in self.tree.get_children():
                 self.tree.delete(i)
 
@@ -169,27 +169,22 @@ class NetMonitorApp:
 
     def calculate_total(self, since_date):
         cursor = self.conn.cursor()
-        cursor.execute("""
-            SELECT SUM(sent) + SUM(recv) FROM daily_network_usage WHERE date >= ?
-        """, (since_date,))
+        cursor.execute("SELECT SUM(sent) + SUM(recv) FROM daily_network_usage WHERE date >= ?", (since_date,))
         return cursor.fetchone()[0] or 0
 
     def create_tray_icon(self, sent_display, recv_display):
-        """إنشاء أيقونة شريط المهام."""
-        # توليد أيقونة فارغة
         image = Image.new('RGB', (64, 64), (255, 255, 255))
         draw = ImageDraw.Draw(image)
         draw.rectangle((0, 0, 64, 64), fill="blue")
 
-        # إنشاء الأيقونة
         self.tray_icon = pystray.Icon("NetMonitor", image, "NetMonitor", menu=None)
         self.update_tray_icon(sent_display, recv_display)
         self.tray_icon.run_detached()
 
     def update_tray_icon(self, sent_display, recv_display):
-        """تحديث أيقونة شريط المهام لعرض الرفع والتنزيل."""
         self.tray_icon.title = f"Upload: {sent_display} | Download: {recv_display}"
 
+# إذا كنت ترغب في تنفيذ البرنامج مباشرة
 # if __name__ == "__main__":
 #     root = tk.Tk()
 #     app = NetMonitorApp(root)

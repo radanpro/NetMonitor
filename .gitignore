@@ -9,3 +9,9 @@ __pycache__/
 
 # SQLite database
 net_monitor.db
+
+#files 
+NetMonitor.png
+NetMonitor.ico
+NetMonitor.iss
+app.py
