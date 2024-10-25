@@ -17,3 +17,8 @@ NetMonitor.png
 NetMonitor.ico
 NetMonitor.iss
 app.py
+
+main.aspec
+
+dist/
+setup.py

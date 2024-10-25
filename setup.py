@@ -2,11 +2,13 @@ from setuptools import setup, find_packages
 
 setup(
     name='NetMonitor',
-    version='0.1',
+    version='1.0.2',
     packages=find_packages(),
     install_requires=[
-        'psutil',
-        'tkinter',
+        'Pillow==11.0.0',
+        'psutil==6.1.0',
+        'pystray==0.19.5',
+        'setuptools==74.1.1'
     ],
     entry_points={
         'console_scripts': [
