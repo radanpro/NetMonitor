@@ -5,7 +5,7 @@ a = Analysis(
     ['main.py'],
     pathex=[],
     binaries=[],
-    datas=[('E:\\projects\\python\\NetMonitor\\NetMonitor.png', '.'), ('E:\\projects\\python\\NetMonitor\\netMonitor.ico', '.')],
+    datas=[('NetMonitor.png', '.'), ('NetMonitor.ico', '.'), ('net_monitor.db', '.')],
     hiddenimports=[],
     hookspath=[],
     hooksconfig={},

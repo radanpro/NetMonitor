@@ -15,8 +15,8 @@ class NetMonitorApp:
         
         base_dir = os.path.dirname(os.path.abspath(__file__))
         self.db_path = os.path.join(base_dir, "net_monitor.db")
-        self.icon_path = os.path.join(base_dir, "netMonitor.ico")  # ضع مسار الأيقونة هنا
-        
+        self.icon_path = os.path.join(base_dir, "NetMonitor.ico")
+
         if not os.path.exists(self.db_path):
             # إنشاء قاعدة البيانات والجدول إذا لم يكن موجودًا
             self.conn = sqlite3.connect(self.db_path)
@@ -26,13 +26,13 @@ class NetMonitorApp:
             self.conn = sqlite3.connect(self.db_path)
 
         os.chmod(self.db_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-        self.conn = sqlite3.connect(self.db_path)
-        self.create_table()
 
         self.previous_sent, self.previous_recv = self.get_network_usage()
+        self.previous_update_time = datetime.datetime.now()
 
         self.header_frame = tk.Frame(master, bg="#007ACC", pady=10)
         self.header_frame.pack(fill=tk.X)
+
         self.sent_label = tk.Label(self.header_frame, text="Upload: 0.00 KB", bg="#007ACC", fg="white", font=("Helvetica", 14))
         self.sent_label.pack(side=tk.LEFT, padx=20)
         self.recv_label = tk.Label(self.header_frame, text="Download: 0.00 KB", bg="#007ACC", fg="white", font=("Helvetica", 14))
@@ -50,6 +50,7 @@ class NetMonitorApp:
         self.tree.heading("upload", text="Upload")
         self.tree.heading("download", text="Download")
         self.tree.heading("total", text="Total")
+
         self.tree.column("date", anchor=tk.CENTER, width=150)
         self.tree.column("upload", anchor=tk.CENTER, width=150)
         self.tree.column("download", anchor=tk.CENTER, width=150)
@@ -61,6 +62,7 @@ class NetMonitorApp:
         self.tree.pack(fill=tk.BOTH, expand=True)
 
         self.tray_icon = None
+
         self.update_label()
 
         self.close_button = tk.Button(master, text="Close", command=self.close_app, bg="red", fg="white", font=("Helvetica", 12, "bold"))
@@ -75,7 +77,6 @@ class NetMonitorApp:
             self.tray_icon.stop()
         sent, recv = self.get_network_usage()
         self.store_network_usage(sent, recv)
-
         self.master.quit()
 
     def create_table(self):
@@ -91,7 +92,6 @@ class NetMonitorApp:
     def get_network_usage(self):
         net_io = psutil.net_io_counters(pernic=True)
         wifi_iface = None
-
         for iface_name in net_io:
             if "Wi-Fi" in iface_name or "wlan" in iface_name:
                 wifi_iface = iface_name
@@ -105,7 +105,8 @@ class NetMonitorApp:
             return 0, 0
 
     def store_network_usage(self, sent, recv):
-        today_date = datetime.datetime.now().strftime("%Y-%m-%d")
+        current_time = datetime.datetime.now()
+        today_date = current_time.strftime("%Y-%m-%d")
         with self.conn:
             cursor = self.conn.cursor()
             cursor.execute("""
@@ -115,6 +116,7 @@ class NetMonitorApp:
                 sent = sent + excluded.sent,
                 recv = recv + excluded.recv
             """, (today_date, sent, recv))
+            self.conn.commit()  # تأكد من حفظ التغييرات
 
     def update_label(self):
         sent, recv = self.get_network_usage()
@@ -122,15 +124,20 @@ class NetMonitorApp:
         delta_recv = recv - self.previous_recv
         self.previous_sent = sent
         self.previous_recv = recv
+
         sent_display = self.format_size(delta_sent) if delta_sent > 0 else "0.00 KB"
         recv_display = self.format_size(delta_recv) if delta_recv > 0 else "0.00 KB"
+
         self.sent_label.config(text=f"Upload: {sent_display}")
         self.recv_label.config(text=f"Download: {recv_display}")
+
         self.store_network_usage(delta_sent, delta_recv)
+
         if self.tray_icon is None:
             self.create_tray_icon(sent_display, recv_display)
         else:
             self.update_tray_icon(sent_display, recv_display)
+
         self.master.after(1000, self.update_label)
 
     def format_size(self, size):
@@ -148,14 +155,17 @@ class NetMonitorApp:
             rows = cursor.fetchall()
             for i in self.tree.get_children():
                 self.tree.delete(i)
+
             week_ago = (datetime.datetime.now() - datetime.timedelta(weeks=1)).strftime("%Y-%m-%d")
             total_last_week = self.calculate_total(week_ago)
             total_this_month = self.calculate_total(thirty_days_ago)
             total_last_30_days = sum(row[1] + row[2] for row in rows)
+
             for row in reversed(rows):
                 date, sent, recv = row
                 total = sent + recv
                 self.tree.insert("", "end", values=(date, self.format_size(sent), self.format_size(recv), self.format_size(total)))
+
             self.tree.insert("", "end", values=("", "Total last week", self.format_size(total_last_week), ""))
             self.tree.insert("", "end", values=("", "Total this month", self.format_size(total_this_month), ""))
             self.tree.insert("", "end", values=("", "Total last 30 days", self.format_size(total_last_30_days), ""))

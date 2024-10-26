@@ -20,5 +20,11 @@ app.py
 
 main.aspec
 
+#folders
 dist/
+build/
+Output/
 setup.py
+Output/NetMonitorSetup.exe
+
+git status
