@@ -18,13 +18,15 @@ NetMonitor.ico
 NetMonitor.iss
 app.py
 
+*.log
+
 main.aspec
 
 #folders
-dist/
-build/
-Output/
+/dist
+.idea/
+/build
+/Output
 setup.py
-Output/NetMonitorSetup.exe
 
 git status
