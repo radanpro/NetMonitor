@@ -20,7 +20,7 @@ app.py
 
 *.log
 
-main.aspec
+main.spec
 
 #folders
 /dist
