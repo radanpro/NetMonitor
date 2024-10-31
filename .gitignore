@@ -13,20 +13,19 @@ dist
 net_monitor.db
 
 #files 
-NetMonitor.png
-NetMonitor.ico
 NetMonitor.iss
 app.py
-
-*.log
 
 main.spec
 
 #folders
 /dist
-.idea/
 /build
 /Output
-setup.py
 
-git status
+# IDE specific files
+.idea/
+
+# Log files
+*.log
+
