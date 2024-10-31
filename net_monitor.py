@@ -60,10 +60,14 @@ class NetMonitorApp:
         self.close_button = tk.Button(master, text="Close", command=self.close_app, bg="red", fg="white", font=("Helvetica", 12, "bold"))
         self.close_button.pack(pady=10)
         self.schedule_auto_update()
+
         self.master.iconbitmap(self.icon_path)
+        self.master.protocol("WM_DELETE_WINDOW", self.hide_window) # التعامل مع إغلاق النافذة الأساسية
+        
+
 
     def close_app(self):
-        if hasattr(self, 'tray_icon'):
+        if self.tray_icon:
             self.tray_icon.stop()
         sent, recv = self.get_network_usage()
         delta_sent = sent - self.previous_sent
@@ -71,7 +75,7 @@ class NetMonitorApp:
         if delta_sent > 0 and delta_recv > 0:
             self.store_network_usage(delta_sent, delta_recv)
         self.conn.commit()
-        self.master.quit()
+        self.master.destroy()  # استخدام destroy لإغلاق التطبيق تمامًا
 
     def create_table(self):
         with self.conn:
@@ -123,8 +127,8 @@ class NetMonitorApp:
         self.recv_label.config(text=f"Download: {recv_display}")
         if delta_sent > 0 and delta_recv > 0:
             self.store_network_usage(delta_sent, delta_recv)
-        if self.tray_icon is None:
-            self.create_tray_icon(sent_display, recv_display)
+        # if self.tray_icon is None:
+        #     self.create_tray_icon(sent_display, recv_display)
         else:
             self.update_tray_icon(sent_display, recv_display)
         self.master.after(1000, self.update_label)
@@ -160,21 +164,30 @@ class NetMonitorApp:
         cursor = self.conn.cursor()
         cursor.execute("SELECT SUM(sent) + SUM(recv) FROM daily_network_usage WHERE date >= ?", (since_date,))
         return cursor.fetchone()[0] or 0
-
-    def create_tray_icon(self, sent_display, recv_display):
+    
+    def create_tray_icon(self, title):
         image = Image.open(self.icon_path)
-        self.tray_icon = pystray.Icon("NetMonitor", image, "NetMonitor", menu=None)
-        self.update_tray_icon(sent_display, recv_display)
+        menu = pystray.Menu(pystray.MenuItem('Open NetMonitor', self.show_window))
+        self.tray_icon = pystray.Icon("NetMonitor", image, title, menu)
         self.tray_icon.run_detached()
 
     def update_tray_icon(self, sent_display, recv_display):
-        self.tray_icon.title = f"Upload: {sent_display} | Download: {recv_display}"
+        if self.tray_icon:
+            self.tray_icon.title = f"Upload: {sent_display} | Download: {recv_display}"
 
     def schedule_auto_update(self):
         self.display_usage()
         self.master.after(15 * 1000, self.schedule_auto_update)
 
-# if __name__ == "__main__":
-#     root = tk.Tk()
-#     app = NetMonitorApp(root)
-#     root.mainloop()
+    def hide_window(self):
+        self.master.withdraw()
+        if self.tray_icon is None:
+            self.create_tray_icon("NetMonitor running in background")
+    
+    def show_window(self, icon, item):
+        self.master.deiconify()
+        if self.tray_icon:
+            self.tray_icon.stop()
+            self.tray_icon = None
+
+
