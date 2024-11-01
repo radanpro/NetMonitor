@@ -18,7 +18,19 @@ NetMonitor helps you understand your internet activity better, enabling you to m
 3. Run the installer and follow the on-screen instructions to complete the installation.
 
 ## Usage
-After installation, you can run the program by double-clicking the NetMonitor icon on your desktop 
+After installation, you can run the program by double-clicking the NetMonitor icon on your desktop .
+### Why this button:
+    
+  ![image](https://github.com/user-attachments/assets/9c483e1b-736a-4b8c-88c9-468b308c3a86).
+  
+  When you want the application to run in the background, close the application from the x located on the right top of the screen, but if you want to close the application permanently without calculating the amount of Internet used, click this button.
+
+---
+
+  - When the application is running in the background and you want to open it again, right-click on the icon in the Windows bar.
+   ![image](https://github.com/user-attachments/assets/a72c8014-baf1-40e1-a090-32b08a67b5a2)
+
+---
 
 ## Features
 - Real-time monitoring of network connections and bandwidth usage.
