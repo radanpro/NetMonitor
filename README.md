@@ -1,6 +1,8 @@
 
 # NetMonitor
-![NetMonitor](https://github.com/user-attachments/assets/6f3e8f20-996b-4f62-b351-bb54868e1031)
+![NetMonitor2-2](https://github.com/user-attachments/assets/8f55080e-e8eb-48e5-aef3-93e8e083b358)
+
+
 
 NetMonitor is a simple program for monitoring upload and download data on the internet, developed using Python and the `tkinter` library. It provides real-time insights into your network's performance, allowing users to easily track data usage and active connections.
 
