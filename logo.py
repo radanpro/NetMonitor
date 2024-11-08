@@ -34,7 +34,5 @@ def show_splash_screen():
     text_id = canvas.create_text(width / 2, height - 50, text="", font=("Helvetica", 24, "bold"), fill="#FFD700")
 
     splash.update()
-    animate_text(canvas, text_id, "مرحبًا بك في NetMonitor!")
-    
     splash.after(3000, splash.destroy)  # استخدام after لإغلاق النافذة بعد 3 ثواني
     splash.mainloop()
