@@ -84,7 +84,7 @@ NetMonitor هو أداة بسيطة مصممة لمساعدتك في مراقب�
 If you want to build the project from source, you can clone it using Git:
 
 ```bash
-git clone https://github.com/abdulrahmanRadan/NetMonitor.git
+git clone https://github.com/radanpro/NetMonitor.git
 cd NetMonitor
 ```
 
